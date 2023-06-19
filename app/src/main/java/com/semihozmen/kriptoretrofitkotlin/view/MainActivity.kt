@@ -12,6 +12,12 @@ import com.semihozmen.kriptoretrofitkotlin.service.CryptoAPI
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Dispatcher
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -25,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val BASE_URL="https://raw.githubusercontent.com/"
     private lateinit var binding: ActivityMainBinding
     private var compositeDisposable : CompositeDisposable? = null
+    private var job :Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,10 +52,28 @@ class MainActivity : AppCompatActivity() {
             .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .build().create(CryptoAPI::class.java)
 
+        job = CoroutineScope(Dispatchers.IO).launch {
+            val response = retrofit.getAll()
+            withContext(Dispatchers.Main){
+                if(response.isSuccessful){
+                    response.body()?.let {
+                        binding.rv.layoutManager = LinearLayoutManager(this@MainActivity)
+                        val adapter = CryptoAdapter(ArrayList(it))
+                        binding.rv.adapter = adapter
+                        binding.progressBar2.visibility = View.INVISIBLE
+                    }
+                }
+            }
+        }
+
+
+        /*
         compositeDisposable?.add(retrofit.getAll()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(this::handleResponse))
+
+         */
 
         /*
         val service = retrofit.create(CryptoAPI::class.java)
@@ -87,6 +112,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        compositeDisposable!!.clear()
+       // compositeDisposable!!.clear()
+        job?.cancel()
     }
 }
