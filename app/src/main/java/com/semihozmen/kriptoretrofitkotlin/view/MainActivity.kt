@@ -3,6 +3,7 @@ package com.semihozmen.kriptoretrofitkotlin.view
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.semihozmen.kriptoretrofitkotlin.R
 import com.semihozmen.kriptoretrofitkotlin.adapter.CryptoAdapter
@@ -12,10 +13,13 @@ import com.semihozmen.kriptoretrofitkotlin.service.CryptoAPI
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import okhttp3.Dispatcher
 import retrofit2.Call
@@ -32,6 +36,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var compositeDisposable : CompositeDisposable? = null
     private var job :Job? = null
+    val handler = CoroutineExceptionHandler { coroutineContext, throwable ->
+        println(throwable.localizedMessage)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +47,18 @@ class MainActivity : AppCompatActivity() {
 
         compositeDisposable = CompositeDisposable()
         loadData()
+
+        lifecycleScope.launch (handler) {
+            supervisorScope {               // iç içe launcler da birinde hata olduğunda
+                launch {                    // diğerlerinin de çalışmaya devam etmesi için
+                    throw Exception("Error")
+                }
+                launch {
+                    delay(5000)
+                    println("executed")
+                }
+            }
+        }
 
 
     }
